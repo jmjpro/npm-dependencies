@@ -5,6 +5,13 @@
   "repository": "https://github.com/jmjpro/npm-dependencies",
   "author": "Joshua Jacobson <joshua@elminda.com>",
   "license": "MIT",
+  "dependencies": {
+    "got": "^11.5.0",
+    "mem": "^6.1.0",
+    "npm-package-arg": "^8.0.1",
+    "semver": "^7.3.2",
+    "treeify": "^1.1.0"
+  },
   "devDependencies": {
     "@babel/cli": "^7.10.4",
     "@babel/core": "^7.10.4",
@@ -18,9 +25,27 @@
     "@babel/register": "^7.10.4",
     "@babel/runtime": "^7.10.4",
     "eslint": "^7.4.0",
-    "jest": "^26.1.0"
+    "husky": "^4.2.5",
+    "jest": "^26.1.0",
+    "lint-staged": "^10.2.11"
   },
   "scripts": {
-    "dev": "babel-node main.js"
+    "lint": "eslint ./src/*.*",
+    "test": "jest",
+    "dev": "babel-node src/main.js",
+    "build": "babel src --out-dir build",
+    "start": "node build/main.js"
+  },
+  "husky": {
+    "hooks": {
+      "pre-commit": "lint-staged"
+    }
+  },
+  "lint-staged": {
+    "src/*.{js,jsx,ts,tsx}": [
+      "npm run lint",
+      "jest --bail --findRelatedTests",
+      "npm run build"
+    ]
   }
 }
