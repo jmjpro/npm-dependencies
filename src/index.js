@@ -9,6 +9,10 @@ app.get('/', (req, res) => {
     res.send('Please use pass parameters like this /package/:package/version/:version')
 })
 
+app.get('/health', (req, res) => {
+    res.send('I am alive')
+})
+
 app.get('/package/:package/version/:version', async (req, res) => {
     const { params } = req
     const packageName = params.package
