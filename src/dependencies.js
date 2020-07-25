@@ -1,7 +1,6 @@
 import mem from 'mem'
 import got from 'got'
 import npa from 'npm-package-arg'
-// import npa from 'npm-package-arg'
 import semver from 'semver'
 
 export const REGISTRY = 'https://registry.npmjs.org'
@@ -11,7 +10,6 @@ export function test (p1) {
 }
 
 async function getExactVersion (packageName, requestedVersion) {
-  // console.log({packageName, requestedVersion})
   const resolveResult = npa.resolve(packageName, requestedVersion)
   const { escapedName } = resolveResult
   const versionType = resolveResult.type
@@ -21,20 +19,17 @@ async function getExactVersion (packageName, requestedVersion) {
       packageName,
       exactVersion: requestedVersion
     }
-  }/*  else if (versionType === 'directory') {
-    return
-  } */
+  }
   const urlGetVersions = `${ REGISTRY }/${ escapedName }`
-  // console.log({urlGetVersions})
-  const jsonVersions = await got(urlGetVersions).json()
+  const npmResponse = await got(urlGetVersions).json()
   try {
-    const exactVersion = semver.maxSatisfying(Object.keys(jsonVersions.versions), requestedVersion)
+    const exactVersion = semver.maxSatisfying(Object.keys(npmResponse.versions), requestedVersion)
     return {
       packageName,
       exactVersion
     }
   } catch(error) {
-    console.log({
+    console.error({
       versionType,
       packageName,
       escapedName,
@@ -62,27 +57,21 @@ async function resolveDependencies (packageName, requestedVersion, tree) {
     tree = {}
     tree[versionedPackageName] = {}
   }
-  const urlGetDependencies = `${ REGISTRY }/${ packageName }/${ exactVersion }`
-  // console.log({ packageName, exactVersion })
-  const json = await got(urlGetDependencies).json()
-  const { dependencies, devDependencies, optionalDependencies } = json
+  const urlGetPackageInfo = `${ REGISTRY }/${ packageName }/${ exactVersion }`
+  const packageInfo = await got(urlGetPackageInfo).json()
+  const { dependencies, devDependencies, optionalDependencies } = packageInfo
   // include non-prod dependencies only for top level
   const combinedDependencies = isTopLevel ? { ...dependencies, ...devDependencies, ...optionalDependencies } : { ...dependencies }
   const combinedDependenciesKeys = Object.keys(combinedDependencies)
   if (!combinedDependenciesKeys.length > 0) {
     return {}
   }
-  // console.log({dependencies})
   const exactVersionPromises = combinedDependenciesKeys.reduce((acc, dependencyName) => {
     const dependencyVersion = combinedDependencies[dependencyName]
     acc.push(getExactVersion(dependencyName, dependencyVersion))
     return acc
   }, [])
-  // console.log({exactVersionPromises})
   const exactVersions = await Promise.all(exactVersionPromises)
-  /* console.log({
-    exactVersions
-  }) */
   const dependencyNameExactVersionMap = exactVersions.reduce((acc, exactVersionResult) => {
     const packageName = exactVersionResult?.packageName
     const exactVersion = exactVersionResult?.exactVersion
@@ -92,19 +81,16 @@ async function resolveDependencies (packageName, requestedVersion, tree) {
     acc[packageName] = exactVersion
     return acc
   }, {})
-  // console.log({dependencyNameExactVersionMap})
 
   const resolveDependenciesPromises = combinedDependenciesKeys.reduce((acc, dependencyName) => {
     const dependencyExactVersion = dependencyNameExactVersionMap[dependencyName]
     const versionedDependencyName = `${ dependencyName }@${ dependencyExactVersion }`
     tree[versionedPackageName][versionedDependencyName] = {}
     const resolvedDependencies = resolveDependenciesMemoized(dependencyName, dependencyExactVersion, tree[versionedPackageName])
-    // console.log(resolvedDependencies)
     acc.push(resolvedDependencies)
     return acc
   }, [])
   try {
-    // console.log({resolveDependenciesPromises})
     await Promise.all(resolveDependenciesPromises)
   } catch(err) {
     console.log(err)

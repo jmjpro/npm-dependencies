@@ -1,14 +1,12 @@
 import treeify from 'treeify'
 
-import { resolveDependenciesMemoized } from './functions'
+import { resolveDependenciesMemoized } from './dependencies'
 
-(async () => {
+export default async (packageName, requestedVersion) => {
   try {
-    const packageName = process.argv[2]
-    const requestedVersion = process.argv[3]
     const dependencies = await resolveDependenciesMemoized(packageName, requestedVersion)
-    console.log(treeify.asTree(dependencies))
+    return treeify.asTree(dependencies)
   } catch(err) {
     console.error(err)
   } 
-})()
+}
